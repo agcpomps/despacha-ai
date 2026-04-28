@@ -1,0 +1,72 @@
+# =========================
+# ENV FILES
+# =========================
+.env
+*.env
+backend/.env
+frontend/.env
+
+# =========================
+# GO
+# =========================
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# build outputs
+backend/api
+backend/tmp/
+backend/build/
+
+# test
+*.test
+
+# =========================
+# LOGS
+# =========================
+*.log
+logs/
+tmp/
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# EDITORS
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# DOCKER
+# =========================
+docker-data/
+*.pid
+
+# =========================
+# NODE (for SvelteKit later)
+# =========================
+node_modules/
+frontend/node_modules/
+
+# build outputs
+frontend/build/
+frontend/.svelte-kit/
+frontend/dist/
+
+# =========================
+# DATABASE / LOCAL FILES
+# =========================
+*.sqlite
+*.db
+
+# =========================
+# MIGRATE LOCK FILES (optional)
+# =========================
+*.lock
