@@ -104,14 +104,14 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Aut
 
 func (s *authService) generateToken(user *domain.User) (string, error) {
 	claims := jwt.MapClaims{
-		"user:id": user.ID,
+		"user_id": user.ID,
 		"role":    string(user.Role),
 		"phone":   user.Phone,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	return token.SignedString([]byte(s.jwtSecret))
 }
