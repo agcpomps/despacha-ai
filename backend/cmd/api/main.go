@@ -6,10 +6,12 @@ import (
 	"github.com/agcpomps/despacha-ai/backend/internal/config"
 	"github.com/agcpomps/despacha-ai/backend/internal/database"
 	"github.com/agcpomps/despacha-ai/backend/internal/handler"
+
 	"github.com/agcpomps/despacha-ai/backend/internal/repository"
+	"github.com/agcpomps/despacha-ai/backend/internal/routes"
 	"github.com/agcpomps/despacha-ai/backend/internal/service"
 	"github.com/labstack/echo/v5"
-	"github.com/labstack/echo/v5/middleware"
+	echomiddleware "github.com/labstack/echo/v5/middleware"
 )
 
 func main() {
@@ -23,27 +25,22 @@ func main() {
 	defer db.Close()
 
 	userRepo := repository.NewUserRepository(db)
+	categoryRepo := repository.NewCategoryRepository(db)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	categoryService := service.NewCategoryService(categoryRepo)
 	authHandler := handler.NewAuthHandler(authService)
+	categoryHandler := handler.NewCategoryHandler(categoryService)
 
 	e := echo.New()
 
-	e.Use(middleware.RequestLogger())
-	e.Use(middleware.Recover())
+	e.Use(echomiddleware.RequestLogger())
+	e.Use(echomiddleware.Recover())
 	//e.Use(middleware.CORS())
 
 	// routes
-	api := e.Group("/api/v1")
-
-	auth := api.Group("/auth")
-	auth.POST("/register", authHandler.Register)
-	auth.POST("/login", authHandler.Login)
-
-	e.GET("/health", func(c *echo.Context) error {
-		return c.JSON(200, map[string]string{
-			"status": "ok",
-			"app":    "despacha-ai",
-		})
+	routes.RegisterRoutes(e, cfg, routes.RouteHandlers{
+		AuthHandler:     authHandler,
+		CategoryHandler: categoryHandler,
 	})
 
 	log.Println("Despacha Aí Api running on port", cfg.Port)
