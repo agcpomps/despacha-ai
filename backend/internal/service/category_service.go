@@ -27,51 +27,44 @@ func (s *categoryService) GetCategories(ctx context.Context) ([]dto.CategoryResp
 		return nil, err
 	}
 
-	type categoryNode struct {
-		response dto.CategoryResponse
-		children []*categoryNode
-	}
-
-	categoryMap := make(map[string]*categoryNode)
-	var rootCategories []*categoryNode
+	categoryMap := make(map[string]*dto.CategoryResponse)
 
 	for _, category := range categories {
-		categoryMap[category.ID] = &categoryNode{
-			response: dto.CategoryResponse{
-				ID:       category.ID,
-				Name:     category.Name,
-				Slug:     category.Slug,
-				ParentID: category.ParentID,
-			},
+		categoryMap[category.ID] = &dto.CategoryResponse{
+			ID:       category.ID,
+			Name:     category.Name,
+			Slug:     category.Slug,
+			ParentID: category.ParentID,
+			Children: []dto.CategoryResponse{},
 		}
 	}
 
 	for _, category := range categories {
 		current := categoryMap[category.ID]
-		if category.ParentID == nil {
-			rootCategories = append(rootCategories, current)
+		if current == nil {
 			continue
 		}
 
-		parent, exists := categoryMap[*category.ParentID]
-		if exists {
-			parent.children = append(parent.children, current)
+		if category.ParentID != nil {
+			parent := categoryMap[*category.ParentID]
+			if parent != nil {
+				parent.Children = append(parent.Children, *current)
+			}
+		}
+
+	}
+
+	rootCategories := []dto.CategoryResponse{}
+
+	for _, category := range categories {
+		if category.ParentID == nil {
+			current := categoryMap[category.ID]
+
+			if current != nil {
+				rootCategories = append(rootCategories, *current)
+			}
 		}
 	}
 
-	var buildResponse func(node *categoryNode) dto.CategoryResponse
-	buildResponse = func(node *categoryNode) dto.CategoryResponse {
-		response := node.response
-		for _, child := range node.children {
-			response.Children = append(response.Children, buildResponse(child))
-		}
-		return response
-	}
-
-	responses := make([]dto.CategoryResponse, 0, len(rootCategories))
-	for _, category := range rootCategories {
-		responses = append(responses, buildResponse(category))
-	}
-
-	return responses, nil
+	return rootCategories, nil
 }
