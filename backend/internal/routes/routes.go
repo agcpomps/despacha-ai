@@ -11,6 +11,7 @@ import (
 type RouteHandlers struct {
 	AuthHandler     *handler.AuthHandler
 	CategoryHandler *handler.CategoryHandler
+	ListingHandler  *handler.ListingHandler
 }
 
 func RegisterRoutes(e *echo.Echo, cfg *config.Config, h RouteHandlers) {
@@ -19,6 +20,7 @@ func RegisterRoutes(e *echo.Echo, cfg *config.Config, h RouteHandlers) {
 	registerHealthRoutes(e)
 	registerAuthRoutes(api, h.AuthHandler)
 	registercategoryRoutes(api, h.CategoryHandler)
+	registerListingRountes(api, cfg, h.ListingHandler)
 	registerUserRoutes(api, cfg)
 	registerAdminRoutes(api, cfg)
 	registerModerationRoutes(api, cfg)
@@ -31,6 +33,21 @@ func registerHealthRoutes(e *echo.Echo) {
 			"app":    "despacha-ai",
 		})
 	})
+}
+
+func registerListingRountes(api *echo.Group, cfg *config.Config, listingHandler *handler.ListingHandler) {
+	listings := api.Group("/listings")
+
+	// public routes
+	listings.GET("", listingHandler.GetListings)
+	listings.GET("/:id", listingHandler.GetListingByID)
+
+	// proctedted routes
+	listings.POST(
+		"",
+		listingHandler.CreateListing,
+		appmiddleware.AuthMiddleware(cfg.JWTSecret),
+	)
 }
 
 func registerAuthRoutes(api *echo.Group, authHandler *handler.AuthHandler) {

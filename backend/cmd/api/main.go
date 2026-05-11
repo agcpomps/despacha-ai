@@ -26,10 +26,13 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
+	listingRepo := repository.NewListingRepository(db)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	categoryService := service.NewCategoryService(categoryRepo)
+	listingService := service.NewListingService(listingRepo)
 	authHandler := handler.NewAuthHandler(authService)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
+	listingHandler := handler.NewListingHandler(listingService)
 
 	e := echo.New()
 
@@ -41,6 +44,7 @@ func main() {
 	routes.RegisterRoutes(e, cfg, routes.RouteHandlers{
 		AuthHandler:     authHandler,
 		CategoryHandler: categoryHandler,
+		ListingHandler:  listingHandler,
 	})
 
 	log.Println("Despacha Aí Api running on port", cfg.Port)
