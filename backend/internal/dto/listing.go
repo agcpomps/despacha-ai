@@ -54,3 +54,12 @@ type ListingImageResponse struct {
 	ImageURL string `json:"image_url"`
 	Position int    `json:"position"`
 }
+
+type ListingFilterRequest struct {
+	CategoryID *string  `json:"category_id"`
+	Province   *string  `json:"province"`
+	City       *string  `json:"city"`
+	MinPrice   *float64 `json:"min_price"`
+	MaxPrice   *float64 `json:"max_price"`
+	Search     *string  `json:"search"`
+}

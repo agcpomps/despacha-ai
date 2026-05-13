@@ -12,34 +12,78 @@ import (
 )
 
 var (
-	ErrListingNotFoud = errors.New("listing not found")
-	ErrInvalidListing = errors.New("invalid listing data")
+	ErrListingNotFoud       = errors.New("listing not found")
+	ErrInvalidListing       = errors.New("invalid listing data")
+	ErrCategoryNotfound     = errors.New("category not found")
+	ErrInvalidCondition     = errors.New("invalid condition")
+	ErrTooManyListingImages = errors.New("too many listing images")
 )
 
 type ListingService interface {
-	CreatedListing(ctx context.Context, userID string, req dto.CreateListingRequest) (*dto.ListingResponse, error)
-	GetListings(ctx context.Context) ([]dto.ListingResponse, error)
+	CreateListing(ctx context.Context, userID string, req dto.CreateListingRequest) (*dto.ListingResponse, error)
+	GetListings(ctx context.Context, filters dto.ListingFilterRequest) ([]dto.ListingResponse, error)
 	GetListingByID(ctx context.Context, id string) (*dto.ListingResponse, error)
 }
 
 type listingService struct {
-	listingRepo repository.ListingRepository
+	listingRepo  repository.ListingRepository
+	categoryRepo repository.CategoryRepository
 }
 
-func NewListingService(listingRepo repository.ListingRepository) ListingService {
+func NewListingService(listingRepo repository.ListingRepository, categoryRepo repository.CategoryRepository) ListingService {
 	return &listingService{
-		listingRepo: listingRepo,
+		listingRepo:  listingRepo,
+		categoryRepo: categoryRepo,
 	}
 }
 
-func (s *listingService) CreatedListing(ctx context.Context, userID string, req dto.CreateListingRequest) (*dto.ListingResponse, error) {
-	if req.Title == "" || req.Description == "" || req.Price <= 0 || req.Province == "" {
-		return nil, ErrInvalidListing
+func (s *listingService) CreateListing(ctx context.Context, userID string, req dto.CreateListingRequest) (*dto.ListingResponse, error) {
+	if req.Title == "" {
+		return nil, errors.New("title is required")
+	}
+
+	if len(req.Title) < 3 {
+		return nil, errors.New("title must have at least 3 characters")
+	}
+
+	if req.Description == "" {
+		return nil, errors.New("description is required")
+	}
+
+	if len(req.Description) < 10 {
+		return nil, errors.New("description must have at least 10 characters")
+	}
+
+	if req.Price <= 0 {
+		return nil, errors.New("price must be greater than zero")
+	}
+
+	if req.Province == "" {
+		return nil, errors.New("province is required")
+	}
+
+	if len(req.Images) > 8 {
+		return nil, ErrTooManyListingImages
+	}
+
+	if req.CategoryID != nil {
+		_, err := s.categoryRepo.FindById(ctx, *req.CategoryID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, ErrCategoryNotfound
+			}
+
+			return nil, err
+		}
 	}
 
 	condition := req.Condition
 	if condition == "" {
 		condition = "used"
+	}
+
+	if !isValidListingCondition(condition) {
+		return nil, ErrInvalidCondition
 	}
 
 	listing := &domain.Listing{
@@ -87,8 +131,8 @@ func (s *listingService) CreatedListing(ctx context.Context, userID string, req 
 	return toListingResponse(createdListing, images), nil
 }
 
-func (s *listingService) GetListings(ctx context.Context) ([]dto.ListingResponse, error) {
-	listings, err := s.listingRepo.FindAll(ctx)
+func (s *listingService) GetListings(ctx context.Context, filters dto.ListingFilterRequest) ([]dto.ListingResponse, error) {
+	listings, err := s.listingRepo.FindAll(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -160,4 +204,13 @@ func toListingResponse(listing *domain.Listing, images []domain.ListingImage) *d
 
 func formatTime(t time.Time) string {
 	return t.Format(time.RFC3339)
+}
+
+func isValidListingCondition(condition string) bool {
+	allowedConditions := map[string]bool{
+		"new":  true,
+		"used": true,
+	}
+
+	return allowedConditions[condition]
 }

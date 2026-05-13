@@ -3,15 +3,18 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/agcpomps/despacha-ai/backend/internal/domain"
+	"github.com/agcpomps/despacha-ai/backend/internal/dto"
 	"github.com/jmoiron/sqlx"
 )
 
 type ListingRepository interface {
 	Create(ctx context.Context, listing *domain.Listing) (*domain.Listing, error)
 	CreateImage(ctx context.Context, image *domain.ListingImage) (*domain.ListingImage, error)
-	FindAll(ctx context.Context) ([]domain.Listing, error)
+	FindAll(ctx context.Context, filters dto.ListingFilterRequest) ([]domain.Listing, error)
 	FindByID(ctx context.Context, id string) (*domain.Listing, error)
 	FindImagesByListingID(ctx context.Context, listingID string) ([]domain.ListingImage, error)
 }
@@ -138,7 +141,7 @@ func (r *listingRepository) CreateImage(ctx context.Context, image *domain.Listi
 
 }
 
-func (r *listingRepository) FindAll(ctx context.Context) ([]domain.Listing, error) {
+func (r *listingRepository) FindAll(ctx context.Context, filters dto.ListingFilterRequest) ([]domain.Listing, error) {
 	query := `
 		SELECT
 			id,
@@ -160,15 +163,58 @@ func (r *listingRepository) FindAll(ctx context.Context) ([]domain.Listing, erro
 			updated_at
 		FROM listings
 		WHERE status = 'active'
-		ORDER BY created_at DESC;
 	`
+	args := []interface{}{}
+	argPosition := 1
+
+	if filters.CategoryID != nil && *filters.CategoryID != "" {
+		query += fmt.Sprintf(" AND category_id = $%d", argPosition)
+		args = append(args, *filters.CategoryID)
+		argPosition++
+	}
+
+	if filters.Province != nil && *filters.Province != "" {
+		query += fmt.Sprintf(" AND province ILIKE $%d", argPosition)
+		args = append(args, *filters.Province)
+		argPosition++
+	}
+
+	if filters.City != nil && *filters.City != "" {
+		query += fmt.Sprintf(" AND city ILIKE $%d", argPosition)
+		args = append(args, *filters.City)
+		argPosition++
+	}
+
+	if filters.MinPrice != nil {
+		query += fmt.Sprintf(" AND price >= $%d", argPosition)
+		args = append(args, *filters.MaxPrice)
+		argPosition++
+	}
+
+	if filters.MaxPrice != nil {
+		query += fmt.Sprintf(" AND price <= $%d", argPosition)
+		args = append(args, *filters.MaxPrice)
+		argPosition++
+	}
+
+	if filters.Search != nil && strings.TrimSpace(*filters.Search) != "" {
+		searchTerm := "%" + strings.TrimSpace(*filters.Search) + "%"
+
+		query += fmt.Sprintf(" AND (title ILIKE $%d OR description ILIKE $%d)", argPosition, argPosition)
+		args = append(args, searchTerm)
+		argPosition++
+	}
+
+	query += " ORDER BY created_at DESC;"
+
 	var listings []domain.Listing
 
-	if err := r.db.SelectContext(ctx, &listings, query); err != nil {
+	if err := r.db.SelectContext(ctx, &listings, query, args...); err != nil {
 		return nil, err
 	}
 
 	return listings, nil
+
 }
 
 func (r *listingRepository) FindByID(ctx context.Context, id string) (*domain.Listing, error) {

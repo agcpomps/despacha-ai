@@ -29,7 +29,7 @@ func main() {
 	listingRepo := repository.NewListingRepository(db)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	categoryService := service.NewCategoryService(categoryRepo)
-	listingService := service.NewListingService(listingRepo)
+	listingService := service.NewListingService(listingRepo, categoryRepo)
 	authHandler := handler.NewAuthHandler(authService)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 	listingHandler := handler.NewListingHandler(listingService)
