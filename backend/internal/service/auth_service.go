@@ -126,5 +126,6 @@ func toUserResponse(user *domain.User) dto.UserResponse {
 		Role:       string(user.Role),
 		Status:     string(user.Status),
 		IsVerified: user.IsVerified,
+		CreatedAt:  user.CreatedAt.Format(time.RFC3339),
 	}
 }

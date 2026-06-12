@@ -65,6 +65,7 @@ frontend/dist/
 # =========================
 *.sqlite
 *.db
+backend/uploads/
 
 # =========================
 # MIGRATE LOCK FILES (optional)

@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+
+@theme {
+	--font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+
+	--color-brand-50: #f0faf2;
+	--color-brand-100: #dcf3e1;
+	--color-brand-200: #bbe7c6;
+	--color-brand-300: #8dd6a1;
+	--color-brand-400: #57bd74;
+	--color-brand-500: #22a04a;
+	--color-brand-600: #1a8a3e;
+	--color-brand-700: #157033;
+	--color-brand-800: #135929;
+	--color-brand-900: #104923;
+	--color-brand-950: #07290f;
+
+	--color-whatsapp: #25d366;
+}
+
+body {
+	@apply bg-neutral-50 font-sans text-neutral-900 antialiased;
+}

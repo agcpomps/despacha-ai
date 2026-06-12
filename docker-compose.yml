@@ -29,6 +29,8 @@ services:
       - "8080:8080"
     env_file:
       - ./backend/.env
+    volumes:
+      - despacha_ai_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,6 +39,7 @@ services:
 
 volumes:
   despacha_ai_pgdata:
+  despacha_ai_uploads:
 
 networks:
   despacha_ai_network:

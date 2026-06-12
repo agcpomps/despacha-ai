@@ -1,0 +1,19 @@
+{$DOMAIN} {
+	encode gzip
+
+	# API Go e imagens dos anúncios
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+	handle /health {
+		reverse_proxy api:8080
+	}
+	handle /uploads/* {
+		reverse_proxy api:8080
+	}
+
+	# SvelteKit
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

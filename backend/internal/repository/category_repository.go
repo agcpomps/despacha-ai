@@ -9,7 +9,7 @@ import (
 
 type CategoryRepository interface {
 	FindAll(ctx context.Context) ([]domain.Category, error)
-	FindById(ctx context.Context, id string) (*domain.Category, error)
+	FindByID(ctx context.Context, id string) (*domain.Category, error)
 	FindBySlug(ctx context.Context, slug string) (*domain.Category, error)
 }
 
@@ -45,7 +45,7 @@ func (r *categoryRepository) FindAll(ctx context.Context) ([]domain.Category, er
 	return categories, nil
 }
 
-func (r *categoryRepository) FindById(ctx context.Context, id string) (*domain.Category, error) {
+func (r *categoryRepository) FindByID(ctx context.Context, id string) (*domain.Category, error) {
 	query := `
 		SELECT
 			id,

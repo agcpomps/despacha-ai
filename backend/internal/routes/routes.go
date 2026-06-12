@@ -12,6 +12,7 @@ type RouteHandlers struct {
 	AuthHandler     *handler.AuthHandler
 	CategoryHandler *handler.CategoryHandler
 	ListingHandler  *handler.ListingHandler
+	UserHandler     *handler.UserHandler
 }
 
 func RegisterRoutes(e *echo.Echo, cfg *config.Config, h RouteHandlers) {
@@ -21,8 +22,8 @@ func RegisterRoutes(e *echo.Echo, cfg *config.Config, h RouteHandlers) {
 	registerAuthRoutes(api, h.AuthHandler)
 	registercategoryRoutes(api, h.CategoryHandler)
 	registerListingRountes(api, cfg, h.ListingHandler)
-	registerUserRoutes(api, cfg)
-	registerAdminRoutes(api, cfg)
+	registerUserRoutes(api, cfg, h.UserHandler, h.ListingHandler)
+	registerAdminRoutes(api, cfg, h.ListingHandler, h.UserHandler)
 	registerModerationRoutes(api, cfg)
 }
 
@@ -48,6 +49,8 @@ func registerListingRountes(api *echo.Group, cfg *config.Config, listingHandler 
 		listingHandler.CreateListing,
 		appmiddleware.AuthMiddleware(cfg.JWTSecret),
 	)
+	listings.PUT("/:id", listingHandler.UpdateListing, appmiddleware.AuthMiddleware(cfg.JWTSecret))
+	listings.DELETE("/:id", listingHandler.DeleteListing, appmiddleware.AuthMiddleware(cfg.JWTSecret))
 }
 
 func registerAuthRoutes(api *echo.Group, authHandler *handler.AuthHandler) {
@@ -57,35 +60,29 @@ func registerAuthRoutes(api *echo.Group, authHandler *handler.AuthHandler) {
 	auth.POST("/login", authHandler.Login)
 }
 
-func registerUserRoutes(api *echo.Group, cfg *config.Config) {
+func registerUserRoutes(api *echo.Group, cfg *config.Config, userHandler *handler.UserHandler, listingHandler *handler.ListingHandler) {
 	private := api.Group("")
 
 	private.Use(appmiddleware.AuthMiddleware(cfg.JWTSecret))
 
-	private.GET("/me", func(c *echo.Context) error {
-		userID := c.Get("user_id").(string)
-		role := c.Get("user_role").(string)
-		phone := c.Get("user_phone").(string)
-
-		return c.JSON(200, map[string]string{
-			"user_id": userID,
-			"role":    role,
-			"phone":   phone,
-		})
-	})
+	private.GET("/me", userHandler.GetMe)
+	private.GET("/me/listings", listingHandler.GetMyListings)
 }
 
-func registerAdminRoutes(api *echo.Group, cfg *config.Config) {
+func registerAdminRoutes(api *echo.Group, cfg *config.Config, listingHandler *handler.ListingHandler, userHandler *handler.UserHandler) {
 	admin := api.Group("/admin")
 
 	admin.Use(appmiddleware.AuthMiddleware(cfg.JWTSecret))
 	admin.Use(appmiddleware.RequireRole("admin"))
 
-	admin.GET("/dashboard", func(c *echo.Context) error {
-		return c.JSON(200, map[string]string{
-			"message": "admin dashboard",
-		})
-	})
+	// user management
+	admin.GET("/users", userHandler.GetUsers)
+	admin.PUT("/users/:id/role", userHandler.UpdateUserRole)
+
+	// listing promotion (manual monetization: featured + bump)
+	admin.PUT("/listings/:id/feature", listingHandler.FeatureListing)
+	admin.DELETE("/listings/:id/feature", listingHandler.UnfeatureListing)
+	admin.PUT("/listings/:id/bump", listingHandler.BumpListing)
 }
 
 func registerModerationRoutes(api *echo.Group, cfg *config.Config) {

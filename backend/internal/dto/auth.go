@@ -26,4 +26,17 @@ type UserResponse struct {
 	Role       string  `json:"role"`
 	Status     string  `json:"status"`
 	IsVerified bool    `json:"is_verified"`
+	CreatedAt  string  `json:"created_at,omitempty"`
+}
+
+type PaginatedUsersResponse struct {
+	Data       []UserResponse `json:"data"`
+	Page       int            `json:"page"`
+	Limit      int            `json:"limit"`
+	Total      int            `json:"total"`
+	TotalPages int            `json:"total_pages"`
+}
+
+type UpdateUserRoleRequest struct {
+	Role string `json:"role"`
 }

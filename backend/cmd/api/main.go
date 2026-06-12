@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 
 	"github.com/agcpomps/despacha-ai/backend/internal/config"
 	"github.com/agcpomps/despacha-ai/backend/internal/database"
@@ -24,27 +26,40 @@ func main() {
 
 	defer db.Close()
 
+	if err := database.RunMigrations(context.Background(), db, cfg.MigrationsPath); err != nil {
+		log.Fatal("failed to run migrations: ", err)
+	}
+
 	userRepo := repository.NewUserRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
 	listingRepo := repository.NewListingRepository(db)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	categoryService := service.NewCategoryService(categoryRepo)
-	listingService := service.NewListingService(listingRepo, categoryRepo)
+	listingService := service.NewListingService(listingRepo, categoryRepo, userRepo)
+	userService := service.NewUserService(userRepo)
 	authHandler := handler.NewAuthHandler(authService)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 	listingHandler := handler.NewListingHandler(listingService)
+	userHandler := handler.NewUserHandler(userService)
 
 	e := echo.New()
 
 	e.Use(echomiddleware.RequestLogger())
 	e.Use(echomiddleware.Recover())
-	//e.Use(middleware.CORS())
+	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
+		AllowOrigins:     cfg.CORSAllowedOrigins,
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		AllowCredentials: true,
+	}))
+	e.Static("/uploads", "uploads")
 
 	// routes
 	routes.RegisterRoutes(e, cfg, routes.RouteHandlers{
 		AuthHandler:     authHandler,
 		CategoryHandler: categoryHandler,
 		ListingHandler:  listingHandler,
+		UserHandler:     userHandler,
 	})
 
 	log.Println("Despacha Aí Api running on port", cfg.Port)

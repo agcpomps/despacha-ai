@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: despacha_ai_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - despacha_ai_pgdata:/var/lib/postgresql/data
+    networks:
+      - despacha_ai_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: despacha_ai_api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: https://${DOMAIN}
+      MIGRATIONS_PATH: ./migrations
+    volumes:
+      - despacha_ai_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - despacha_ai_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        PUBLIC_API_BASE_URL: https://${DOMAIN}
+        PUBLIC_ADMIN_WHATSAPP: ${PUBLIC_ADMIN_WHATSAPP}
+    container_name: despacha_ai_frontend
+    restart: unless-stopped
+    environment:
+      # remote functions correm no servidor; chamam a API pelo domínio público (via Caddy)
+      PUBLIC_API_BASE_URL: https://${DOMAIN}
+      PUBLIC_ADMIN_WHATSAPP: ${PUBLIC_ADMIN_WHATSAPP}
+      ORIGIN: https://${DOMAIN}
+      BODY_SIZE_LIMIT: 20M
+    depends_on:
+      - api
+    networks:
+      - despacha_ai_network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: despacha_ai_caddy
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - despacha_ai_caddy_data:/data
+      - despacha_ai_caddy_config:/config
+    depends_on:
+      - frontend
+      - api
+    networks:
+      - despacha_ai_network
+
+volumes:
+  despacha_ai_pgdata:
+  despacha_ai_uploads:
+  despacha_ai_caddy_data:
+  despacha_ai_caddy_config:
+
+networks:
+  despacha_ai_network:
+    driver: bridge

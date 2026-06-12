@@ -23,6 +23,10 @@ type Listing struct {
 	Status     string `db:"status" json:"status"`
 	ViewsCount int    `db:"views_count" json:"views_count"`
 
+	IsFeatured    bool       `db:"is_featured" json:"is_featured"`
+	FeaturedUntil *time.Time `db:"featured_until" json:"featured_until,omitempty"`
+	BumpedAt      *time.Time `db:"bumped_at" json:"bumped_at,omitempty"`
+
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }

@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/agcpomps/despacha-ai/backend/internal/auth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v5"
 )
@@ -38,13 +40,17 @@ func AuthMiddleware(jwtSecret string) echo.MiddlewareFunc {
 				tokenString,
 				&JWTCustomClaims{},
 				func(token *jwt.Token) (interface{}, error) {
+					if token.Method != jwt.SigningMethodHS256 {
+						return nil, errors.New("unexpected token signing method")
+					}
+
 					return []byte(jwtSecret), nil
 				},
 			)
 
 			if err != nil || !token.Valid {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"error": "inavalid or expired token",
+					"error": "invalid or expired token",
 				})
 			}
 
@@ -55,6 +61,11 @@ func AuthMiddleware(jwtSecret string) echo.MiddlewareFunc {
 				})
 			}
 
+			c.Set(auth.ContextUserKey, &auth.UserContext{
+				UserID: claims.UserID,
+				Role:   claims.Role,
+				Phone:  claims.Phone,
+			})
 			c.Set("user_id", claims.UserID)
 			c.Set("user_role", claims.Role)
 			c.Set("user_phone", claims.Phone)
