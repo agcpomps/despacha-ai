@@ -5,14 +5,35 @@
 
 	const categories = getCategories();
 
-	let previews = $state<string[]>([]);
+	const MAX_IMAGES = 8;
 
-	function handleFilesChange(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
+	let photos = $state<File[]>([]);
+	let previews = $state<string[]>([]);
+	let submitInput: HTMLInputElement;
+
+	// reconstrói a FileList do input que é submetido (FileList é só-leitura,
+	// por isso usamos um DataTransfer) e refaz as pré-visualizações
+	function sync() {
+		const dt = new DataTransfer();
+		for (const file of photos) dt.items.add(file);
+		if (submitInput) submitInput.files = dt.files;
+
 		for (const url of previews) URL.revokeObjectURL(url);
-		previews = Array.from(input.files ?? [])
-			.slice(0, 8)
-			.map((file) => URL.createObjectURL(file));
+		previews = photos.map((file) => URL.createObjectURL(file));
+	}
+
+	// acumula as fotos vindas da câmara ou da galeria (até MAX_IMAGES)
+	function addFiles(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const incoming = Array.from(input.files ?? []).filter((f) => f.type.startsWith('image/'));
+		photos = [...photos, ...incoming].slice(0, MAX_IMAGES);
+		input.value = ''; // permite voltar a tirar foto / re-selecionar o mesmo ficheiro
+		sync();
+	}
+
+	function removePhoto(index: number) {
+		photos = photos.filter((_, i) => i !== index);
+		sync();
 	}
 </script>
 
@@ -118,32 +139,68 @@
 			<h2 class="text-sm font-bold tracking-wide text-neutral-500 uppercase">Fotografias</h2>
 			<p class="mt-1 text-xs text-neutral-500">Até 8 imagens. A primeira será a capa do anúncio.</p>
 
-			<label
-				class="mt-3 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 p-8 text-center transition hover:border-brand-400 hover:bg-brand-50/40"
-			>
-				<svg class="h-8 w-8 text-neutral-400" viewBox="0 0 24 24" fill="currentColor">
-					<path
-						fill-rule="evenodd"
-						d="M1.5 6a3 3 0 0 1 3-3h15a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-15a3 3 0 0 1-3-3V6Zm3-1.5A1.5 1.5 0 0 0 3 6v12c0 .39.149.745.393 1.011l6.647-6.646a2.25 2.25 0 0 1 3.182 0l1.949 1.948 1.586-1.585a2.25 2.25 0 0 1 3.182 0L21 13.789V6a1.5 1.5 0 0 0-1.5-1.5h-15Zm10.125 4.5a1.875 1.875 0 1 1 3.75 0 1.875 1.875 0 0 1-3.75 0Z"
-						clip-rule="evenodd"
+			<!-- input realmente submetido; preenchido via DataTransfer em sync() -->
+			<input
+				bind:this={submitInput}
+				type="file"
+				name="images"
+				accept="image/*"
+				multiple
+				class="hidden"
+				tabindex="-1"
+				aria-hidden="true"
+			/>
+
+			<div class="mt-3 grid grid-cols-2 gap-3">
+				<!-- Tirar foto: capture abre a câmara direto no telemóvel -->
+				<label
+					class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 p-6 text-center transition hover:border-brand-400 hover:bg-brand-50/40 aria-disabled:pointer-events-none aria-disabled:opacity-40"
+					aria-disabled={previews.length >= MAX_IMAGES}
+				>
+					<svg class="h-7 w-7 text-brand-600" viewBox="0 0 24 24" fill="currentColor">
+						<path
+							fill-rule="evenodd"
+							d="M12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"
+							clip-rule="evenodd"
+						/>
+						<path
+							fill-rule="evenodd"
+							d="M9.344 3.071a49.52 49.52 0 0 1 5.312 0c.967.052 1.83.585 2.332 1.39l.821 1.317c.24.383.645.643 1.11.71.386.054.77.113 1.152.177 1.432.239 2.429 1.493 2.429 2.909V18a3 3 0 0 1-3 3h-15a3 3 0 0 1-3-3V9.574c0-1.416.997-2.67 2.429-2.909.382-.064.766-.123 1.151-.178a1.56 1.56 0 0 0 1.11-.71l.822-1.315a2.942 2.942 0 0 1 2.332-1.39ZM6.75 12.75a5.25 5.25 0 1 1 10.5 0 5.25 5.25 0 0 1-10.5 0Zm12-1.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					<span class="text-sm font-medium text-neutral-600">Tirar foto</span>
+					<input
+						type="file"
+						accept="image/*"
+						capture="environment"
+						class="hidden"
+						onchange={addFiles}
 					/>
-				</svg>
-				<span class="text-sm font-medium text-neutral-600">Clica para escolher imagens</span>
-				<input
-					type="file"
-					name="images"
-					accept="image/*"
-					multiple
-					class="hidden"
-					onchange={handleFilesChange}
-				/>
-			</label>
+				</label>
+
+				<!-- Galeria: seleção múltipla -->
+				<label
+					class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 p-6 text-center transition hover:border-brand-400 hover:bg-brand-50/40 aria-disabled:pointer-events-none aria-disabled:opacity-40"
+					aria-disabled={previews.length >= MAX_IMAGES}
+				>
+					<svg class="h-7 w-7 text-brand-600" viewBox="0 0 24 24" fill="currentColor">
+						<path
+							fill-rule="evenodd"
+							d="M1.5 6a3 3 0 0 1 3-3h15a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-15a3 3 0 0 1-3-3V6Zm3-1.5A1.5 1.5 0 0 0 3 6v12c0 .39.149.745.393 1.011l6.647-6.646a2.25 2.25 0 0 1 3.182 0l1.949 1.948 1.586-1.585a2.25 2.25 0 0 1 3.182 0L21 13.789V6a1.5 1.5 0 0 0-1.5-1.5h-15Zm10.125 4.5a1.875 1.875 0 1 1 3.75 0 1.875 1.875 0 0 1-3.75 0Z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					<span class="text-sm font-medium text-neutral-600">Galeria</span>
+					<input type="file" accept="image/*" multiple class="hidden" onchange={addFiles} />
+				</label>
+			</div>
 
 			{#if previews.length}
 				<div class="mt-4 grid grid-cols-4 gap-2">
 					{#each previews as url, index (url)}
 						<div
-							class="relative aspect-square overflow-hidden rounded-lg border border-neutral-200"
+							class="group relative aspect-square overflow-hidden rounded-lg border border-neutral-200"
 						>
 							<img
 								src={url}
@@ -156,9 +213,22 @@
 									>Capa</span
 								>
 							{/if}
+							<button
+								type="button"
+								onclick={() => removePhoto(index)}
+								aria-label="Remover foto"
+								class="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900/70 text-white transition hover:bg-red-600"
+							>
+								<svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+									<path
+										d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+									/>
+								</svg>
+							</button>
 						</div>
 					{/each}
 				</div>
+				<p class="mt-2 text-xs text-neutral-400">{previews.length} de {MAX_IMAGES} fotos</p>
 			{/if}
 			{#each createListing.fields.images.issues() ?? [] as issue (issue.message)}
 				<p class="mt-2 text-sm text-red-600">{issue.message}</p>
