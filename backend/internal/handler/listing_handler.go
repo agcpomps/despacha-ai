@@ -3,15 +3,14 @@ package handler
 import (
 	"errors"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/agcpomps/despacha-ai/backend/internal/dto"
+	"github.com/agcpomps/despacha-ai/backend/internal/imageutil"
 	"github.com/agcpomps/despacha-ai/backend/internal/service"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -108,26 +107,12 @@ func saveUploadedFile(c *echo.Context, file *multipart.FileHeader) (string, erro
 	}
 	defer source.Close()
 
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if ext == "" {
-		ext = ".jpg"
-	}
-
 	dir := filepath.Join("uploads", "listings")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", errors.New("failed to create uploads directory")
-	}
 
-	fileName := fmt.Sprintf("%s%s", uuid.NewString(), ext)
-	destinationPath := filepath.Join(dir, fileName)
-	destination, err := os.Create(destinationPath)
+	// auto-orient, downscale and recompress to a web-friendly JPEG
+	fileName, err := imageutil.SaveCompressed(source, dir, uuid.NewString())
 	if err != nil {
-		return "", errors.New("failed to save uploaded image")
-	}
-	defer destination.Close()
-
-	if _, err := io.Copy(destination, source); err != nil {
-		return "", errors.New("failed to write uploaded image")
+		return "", errors.New("unsupported or corrupt image file")
 	}
 
 	scheme := "http"

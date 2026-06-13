@@ -84,24 +84,47 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 
 ## 7. Backups (importante!)
 
-As imagens dos anúncios e a BD vivem em volumes Docker. Backup diário simples via cron:
+Duas camadas de protecção:
+
+### Camada 1 — Hetzner Backups (recomendado, automático)
+
+Ao criar o servidor, liga a opção **Backups** (~20% do custo do servidor, ~€0.76/mês
+no CX22). São snapshots automáticos de todo o disco, guardados pela Hetzner **fora da
+máquina** — protegem mesmo que o servidor morra. Zero manutenção.
+
+### Camada 2 — backups locais granulares (script)
+
+O [scripts/backup.sh](scripts/backup.sh) faz dump da BD + tar das imagens, com rotação
+(guarda 7 dias). Permite restauro rápido e selectivo (ex: recuperar a BD depois de um
+deploy mau). Testa uma vez à mão:
+
+```bash
+cd /opt/despacha-ai
+./scripts/backup.sh
+```
+
+Depois agenda diariamente com o cron:
 
 ```bash
 crontab -e
 ```
 
 ```cron
-# 03h00: dump da BD + tar das imagens, guarda 7 dias
-0 3 * * * docker exec despacha_ai_postgres pg_dump -U despacha despacha_ai | gzip > /root/backups/db-$(date +\%u).sql.gz
-10 3 * * * docker run --rm -v despacha-ai_despacha_ai_uploads:/data -v /root/backups:/backup alpine tar czf /backup/uploads-$(date +\%u).tar.gz -C /data .
+# 03h00 todos os dias
+0 3 * * * cd /opt/despacha-ai && ./scripts/backup.sh >> /var/log/despacha-backup.log 2>&1
 ```
+
+**Restauro** (comandos no topo do próprio script):
 
 ```bash
-mkdir -p /root/backups
+# base de dados
+gunzip -c backups/db-XXXX.sql.gz | docker exec -i despacha_ai_postgres psql -U "$DB_USER" "$DB_NAME"
+# imagens
+docker exec -i despacha_ai_api sh -c 'tar xzf - -C /app/uploads' < backups/uploads-XXXX.tar.gz
 ```
 
-Para algo mais robusto: snapshots automáticos da Hetzner (€~1/mês) ou
-enviar os dumps para um Storage Box.
+> Para máxima segurança, podes enviar os dumps de `backups/` para um Hetzner
+> Storage Box (~€3.20/mês, 1TB) com `rsync` — mas a Camada 1 já cobre o essencial.
 
 ## Notas
 
