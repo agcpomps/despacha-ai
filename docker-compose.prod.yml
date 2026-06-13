@@ -47,14 +47,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        PUBLIC_API_BASE_URL: https://${DOMAIN}
-        PUBLIC_ADMIN_WHATSAPP: ${PUBLIC_ADMIN_WHATSAPP}
     container_name: despacha_ai_frontend
     restart: unless-stopped
     environment:
-      # remote functions correm no servidor; chamam a API pelo domínio público (via Caddy)
-      PUBLIC_API_BASE_URL: https://${DOMAIN}
+      # As remote functions correm no servidor (dentro do container): falam com a API
+      # pela rede interna do Docker, sem sair para a internet/Cloudflare. As URLs das
+      # imagens são geradas no upload (via Caddy) e ficam gravadas com o domínio público,
+      # por isso continuam correctas para o browser.
+      PUBLIC_API_BASE_URL: http://api:8080
       PUBLIC_ADMIN_WHATSAPP: ${PUBLIC_ADMIN_WHATSAPP}
       ORIGIN: https://${DOMAIN}
       BODY_SIZE_LIMIT: 20M
