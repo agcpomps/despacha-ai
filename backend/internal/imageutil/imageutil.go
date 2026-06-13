@@ -10,6 +10,10 @@ import (
 	"path/filepath"
 
 	"github.com/disintegration/imaging"
+
+	// regista descodificadores adicionais para o image.Decode usado pelo imaging.
+	// Sem isto, imagens WebP (comuns na web/WhatsApp) falham a descodificação.
+	_ "golang.org/x/image/webp"
 )
 
 const (

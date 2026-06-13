@@ -112,6 +112,13 @@ func saveUploadedFile(c *echo.Context, file *multipart.FileHeader) (string, erro
 	// auto-orient, downscale and recompress to a web-friendly JPEG
 	fileName, err := imageutil.SaveCompressed(source, dir, uuid.NewString())
 	if err != nil {
+		c.Logger().Error(
+			"image processing failed",
+			"filename", file.Filename,
+			"content_type", file.Header.Get("Content-Type"),
+			"size", file.Size,
+			"error", err,
+		)
 		return "", errors.New("unsupported or corrupt image file")
 	}
 
