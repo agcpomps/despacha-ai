@@ -96,6 +96,12 @@ export const createListing = form(
 		images: imagesSchema
 	}),
 	async (data) => {
+		// DIAGNÓSTICO TEMPORÁRIO — remover depois
+		console.log(
+			'[createListing] imagens no servidor SvelteKit:',
+			(data.images ?? []).map((f) => ({ name: f.name, size: f.size, type: f.type }))
+		);
+
 		const formData = new FormData();
 		formData.set('title', data.title.trim());
 		formData.set('description', data.description.trim());
@@ -107,8 +113,13 @@ export const createListing = form(
 		if (data.address_reference) formData.set('address_reference', data.address_reference);
 		if (data.whatsapp_phone) formData.set('whatsapp_phone', data.whatsapp_phone);
 		if (data.phone) formData.set('phone', data.phone);
+		// O File reconstruído pelo protocolo binário das remote functions não é um
+		// Blob nativo que o fetch reconheça — ao serializar o FormData seria convertido
+		// para a string "[object Object]" (15 bytes). Reconstruímos um File nativo a
+		// partir dos bytes reais para garantir o upload correcto.
 		for (const file of data.images ?? []) {
-			formData.append('images', file, file.name);
+			const buffer = await file.arrayBuffer();
+			formData.append('images', new File([buffer], file.name, { type: file.type }));
 		}
 
 		let listing: Listing;
@@ -119,7 +130,12 @@ export const createListing = form(
 				formData
 			});
 		} catch (err) {
-			invalid(err instanceof ApiError ? err.message : 'Não foi possível publicar o anúncio.');
+			// DIAGNÓSTICO TEMPORÁRIO — mostra os tamanhos vistos no servidor SvelteKit
+			const dbg = (data.images ?? []).map((f) => `${f.name}:${f.size}b`).join(', ');
+			invalid(
+				(err instanceof ApiError ? err.message : 'Não foi possível publicar o anúncio.') +
+					` [debug: ${dbg || 'sem imagens'}]`
+			);
 		}
 
 		redirect(303, `/anuncio/${listing.id}`);

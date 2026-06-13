@@ -3,6 +3,7 @@
 	import { env } from '$env/dynamic/public';
 	import { getMyListings, setListingStatus, deleteListing } from '$lib/remote/listings.remote';
 	import { formatPrice, timeAgo, STATUS_LABELS } from '$lib/utils';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { Listing } from '$lib/types';
 
 	const adminWhatsApp = (env.PUBLIC_ADMIN_WHATSAPP ?? '').replace(/\D/g, '');
@@ -25,11 +26,16 @@
 	let busyId = $state<string | null>(null);
 	let actionError = $state<string | null>(null);
 
+	// confirmação de remoção
+	let confirmOpen = $state(false);
+	let pendingDeleteId = $state<string | null>(null);
+
 	async function changeStatus(id: string, status: 'active' | 'sold' | 'paused') {
 		busyId = id;
 		actionError = null;
 		try {
-			await setListingStatus({ id, status }).updates(myListings);
+			await setListingStatus({ id, status });
+			await myListings.refresh();
 		} catch {
 			actionError = 'Não foi possível actualizar o anúncio.';
 		} finally {
@@ -37,12 +43,21 @@
 		}
 	}
 
-	async function remove(id: string) {
-		if (!confirm('Tens a certeza que queres apagar este anúncio?')) return;
+	function askRemove(id: string) {
+		pendingDeleteId = id;
+		confirmOpen = true;
+	}
+
+	async function confirmRemove() {
+		const id = pendingDeleteId;
+		pendingDeleteId = null;
+		if (!id) return;
+
 		busyId = id;
 		actionError = null;
 		try {
-			await deleteListing(id).updates(myListings);
+			await deleteListing(id);
+			await myListings.refresh();
 		} catch {
 			actionError = 'Não foi possível apagar o anúncio.';
 		} finally {
@@ -177,7 +192,7 @@
 						>
 						<button
 							type="button"
-							onclick={() => remove(listing.id)}
+							onclick={() => askRemove(listing.id)}
 							disabled={busyId === listing.id}
 							class="rounded-full border border-red-200 px-3.5 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
 							>Apagar</button
@@ -207,3 +222,12 @@
 		</div>
 	{/snippet}
 </svelte:boundary>
+
+<ConfirmDialog
+	bind:open={confirmOpen}
+	danger
+	title="Apagar anúncio"
+	message="Tens a certeza que queres apagar este anúncio? Esta ação não pode ser desfeita."
+	confirmLabel="Apagar"
+	onconfirm={confirmRemove}
+/>

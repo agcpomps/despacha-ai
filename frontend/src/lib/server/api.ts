@@ -49,9 +49,12 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 		body = JSON.stringify(options.body);
 	}
 
+	// Usamos o fetch global (não event.fetch): event.fetch destina-se a pedidos
+	// internos durante SSR e não reenvia bem um corpo multipart com ficheiros para
+	// uma API externa. O token de auth é colocado manualmente no header acima.
 	let response: Response;
 	try {
-		response = await event.fetch(url, { method: options.method ?? 'GET', headers, body });
+		response = await fetch(url, { method: options.method ?? 'GET', headers, body });
 	} catch {
 		throw new ApiError(503, 'Falha de ligação ao servidor.');
 	}
