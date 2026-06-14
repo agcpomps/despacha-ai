@@ -8,6 +8,7 @@
 	} from '$lib/remote/listings.remote';
 	import { getCurrentUser } from '$lib/remote/auth.remote';
 	import Seo from '$lib/components/Seo.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import { formatPrice, locationText, timeAgo, CONDITION_LABELS } from '$lib/utils';
 
 	const listing = $derived(getListing(page.params.id!));
@@ -17,6 +18,7 @@
 	let adminBusy = $state(false);
 	let adminError = $state<string | null>(null);
 	let copied = $state(false);
+	let unfeatureConfirmOpen = $state(false);
 
 	async function copyNumber(number: string) {
 		try {
@@ -291,10 +293,18 @@
 								<button
 									type="button"
 									disabled={adminBusy}
-									onclick={() => runAdminAction(() => unfeatureListing(item.id))}
+									onclick={() => (unfeatureConfirmOpen = true)}
 									class="rounded-full border border-neutral-300 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 transition hover:border-red-300 hover:text-red-600 disabled:opacity-50"
 									>Remover destaque</button
 								>
+								<ConfirmDialog
+									bind:open={unfeatureConfirmOpen}
+									danger
+									title="Remover destaque"
+									message="Este anúncio deixa de aparecer em destaque. Tens a certeza?"
+									confirmLabel="Remover"
+									onconfirm={() => runAdminAction(() => unfeatureListing(item.id))}
+								/>
 							{:else}
 								{#each [7, 15, 30] as days (days)}
 									<button

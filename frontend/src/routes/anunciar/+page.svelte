@@ -139,11 +139,12 @@
 			<h2 class="text-sm font-bold tracking-wide text-neutral-500 uppercase">Fotografias</h2>
 			<p class="mt-1 text-xs text-neutral-500">Até 8 imagens. A primeira será a capa do anúncio.</p>
 
-			<!-- input realmente submetido; preenchido via DataTransfer em sync() -->
+			<!-- input realmente submetido; preenchido via DataTransfer em sync().
+			     O sufixo [] é exigido pelas remote functions para múltiplos ficheiros. -->
 			<input
 				bind:this={submitInput}
 				type="file"
-				name="images"
+				name="images[]"
 				accept="image/*"
 				multiple
 				class="hidden"

@@ -96,12 +96,6 @@ export const createListing = form(
 		images: imagesSchema
 	}),
 	async (data) => {
-		// DIAGNÓSTICO TEMPORÁRIO — remover depois
-		console.log(
-			'[createListing] imagens no servidor SvelteKit:',
-			(data.images ?? []).map((f) => ({ name: f.name, size: f.size, type: f.type }))
-		);
-
 		const formData = new FormData();
 		formData.set('title', data.title.trim());
 		formData.set('description', data.description.trim());
@@ -130,12 +124,7 @@ export const createListing = form(
 				formData
 			});
 		} catch (err) {
-			// DIAGNÓSTICO TEMPORÁRIO — mostra os tamanhos vistos no servidor SvelteKit
-			const dbg = (data.images ?? []).map((f) => `${f.name}:${f.size}b`).join(', ');
-			invalid(
-				(err instanceof ApiError ? err.message : 'Não foi possível publicar o anúncio.') +
-					` [debug: ${dbg || 'sem imagens'}]`
-			);
+			invalid(err instanceof ApiError ? err.message : 'Não foi possível publicar o anúncio.');
 		}
 
 		redirect(303, `/anuncio/${listing.id}`);
