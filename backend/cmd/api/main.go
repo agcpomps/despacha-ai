@@ -39,7 +39,7 @@ func main() {
 	userService := service.NewUserService(userRepo)
 	authHandler := handler.NewAuthHandler(authService)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
-	listingHandler := handler.NewListingHandler(listingService)
+	listingHandler := handler.NewListingHandler(listingService, cfg.PublicBaseURL)
 	userHandler := handler.NewUserHandler(userService)
 
 	e := echo.New()

@@ -18,15 +18,17 @@ import (
 
 type ListingHandler struct {
 	listingService service.ListingService
+	publicBaseURL  string
 }
 
-func NewListingHandler(listingService service.ListingService) *ListingHandler {
+func NewListingHandler(listingService service.ListingService, publicBaseURL string) *ListingHandler {
 	return &ListingHandler{
 		listingService: listingService,
+		publicBaseURL:  strings.TrimRight(publicBaseURL, "/"),
 	}
 }
 
-func buildCreateListingRequest(c *echo.Context) (dto.CreateListingRequest, error) {
+func (h *ListingHandler) buildCreateListingRequest(c *echo.Context) (dto.CreateListingRequest, error) {
 	contentType := c.Request().Header.Get(echo.HeaderContentType)
 	if !strings.HasPrefix(contentType, "multipart/form-data") {
 		var req dto.CreateListingRequest
@@ -41,7 +43,7 @@ func buildCreateListingRequest(c *echo.Context) (dto.CreateListingRequest, error
 		return dto.CreateListingRequest{}, errors.New("price must be a valid number")
 	}
 
-	images, err := saveUploadedListingImages(c)
+	images, err := h.saveUploadedListingImages(c)
 	if err != nil {
 		return dto.CreateListingRequest{}, err
 	}
@@ -69,7 +71,7 @@ func optionalStringPointer(value string) *string {
 	return &trimmed
 }
 
-func saveUploadedListingImages(c *echo.Context) ([]string, error) {
+func (h *ListingHandler) saveUploadedListingImages(c *echo.Context) ([]string, error) {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return nil, errors.New("invalid multipart form")
@@ -86,7 +88,7 @@ func saveUploadedListingImages(c *echo.Context) ([]string, error) {
 			continue
 		}
 
-		imageURL, err := saveUploadedFile(c, file)
+		imageURL, err := h.saveUploadedFile(c, file)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +98,7 @@ func saveUploadedListingImages(c *echo.Context) ([]string, error) {
 	return images, nil
 }
 
-func saveUploadedFile(c *echo.Context, file *multipart.FileHeader) (string, error) {
+func (h *ListingHandler) saveUploadedFile(c *echo.Context, file *multipart.FileHeader) (string, error) {
 	if !strings.HasPrefix(file.Header.Get("Content-Type"), "image/") {
 		return "", errors.New("only image uploads are allowed")
 	}
@@ -122,11 +124,18 @@ func saveUploadedFile(c *echo.Context, file *multipart.FileHeader) (string, erro
 		return "", errors.New("unsupported or corrupt image file")
 	}
 
+	// Preferimos a origem pública configurada (ex: https://despachaai.com). Sem ela,
+	// o upload feito a partir do container do frontend produziria URLs internos
+	// (http://api:8080/...) inalcançáveis pelo browser. Em dev fica vazia e usamos o
+	// host do pedido (localhost:8080), que o browser consegue abrir.
+	if h.publicBaseURL != "" {
+		return fmt.Sprintf("%s/uploads/listings/%s", h.publicBaseURL, fileName), nil
+	}
+
 	scheme := "http"
 	if c.Request().TLS != nil {
 		scheme = "https"
 	}
-	// behind a reverse proxy (Caddy) TLS terminates upstream
 	if forwarded := c.Request().Header.Get("X-Forwarded-Proto"); forwarded != "" {
 		scheme = forwarded
 	}
@@ -140,7 +149,7 @@ func saveUploadedFile(c *echo.Context, file *multipart.FileHeader) (string, erro
 }
 
 func (h *ListingHandler) CreateListing(c *echo.Context) error {
-	req, err := buildCreateListingRequest(c)
+	req, err := h.buildCreateListingRequest(c)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),

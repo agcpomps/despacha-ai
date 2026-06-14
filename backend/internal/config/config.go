@@ -17,6 +17,7 @@ type Config struct {
 	JWTSecret          string
 	CORSAllowedOrigins []string
 	MigrationsPath     string
+	PublicBaseURL      string
 }
 
 func Load() *Config {
@@ -32,6 +33,9 @@ func Load() *Config {
 		JWTSecret:          getEnv("JWT_SECRET", "change_me"),
 		CORSAllowedOrigins: getCSVEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:4173"),
 		MigrationsPath:     getEnv("MIGRATIONS_PATH", "migrations"),
+		// origem pública para construir URLs de imagens (ex: https://despachaai.com).
+		// Vazio em dev → usa o host do pedido (localhost:8080).
+		PublicBaseURL: getEnv("PUBLIC_BASE_URL", ""),
 	}
 }
 

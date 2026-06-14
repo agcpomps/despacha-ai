@@ -35,6 +35,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: https://${DOMAIN}
       MIGRATIONS_PATH: ./migrations
+      # origem pública para os URLs das imagens (senão ficariam http://api:8080/...)
+      PUBLIC_BASE_URL: https://${DOMAIN}
     volumes:
       - despacha_ai_uploads:/app/uploads
     depends_on:
