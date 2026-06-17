@@ -287,12 +287,12 @@
 				>
 			</div>
 			<div
-				class="mt-4 grid grid-flow-col grid-rows-1 gap-3 overflow-x-auto pb-2 sm:grid-flow-row sm:grid-cols-4 sm:grid-rows-none lg:grid-cols-8"
+				class="mt-4 flex gap-3 overflow-x-auto pb-2"
 			>
 				{#each cats as category (category.id)}
 					<a
 						href={`/search?category_id=${category.id}`}
-						class="group flex w-24 shrink-0 flex-col items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-2 py-4 text-center transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md hover:shadow-neutral-900/5 active:scale-95 sm:w-auto"
+						class="group flex w-24 shrink-0 flex-col items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-2 py-4 text-center transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md hover:shadow-neutral-900/5 active:scale-95"
 					>
 						<span
 							class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-100"
