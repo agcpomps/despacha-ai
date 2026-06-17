@@ -1,6 +1,6 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 
-const PROTECTED_PATHS = ['/anunciar', '/dashboard', '/admin'];
+const PROTECTED_PATHS = ['/anunciar', '/dashboard', '/admin', '/conta'];
 
 function isProtected(pathname: string) {
 	return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

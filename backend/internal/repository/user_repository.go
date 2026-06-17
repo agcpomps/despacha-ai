@@ -16,6 +16,7 @@ type UserRepository interface {
 	List(ctx context.Context, search string, limit, offset int) ([]domain.User, error)
 	Count(ctx context.Context, search string) (int, error)
 	UpdateRole(ctx context.Context, id string, role domain.UserRole) error
+	UpdatePassword(ctx context.Context, id string, passwordHash string) error
 }
 
 type userRepository struct {
@@ -87,6 +88,29 @@ func (r *userRepository) UpdateRole(ctx context.Context, id string, role domain.
 	`
 
 	result, err := r.db.ExecContext(ctx, query, id, role)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (r *userRepository) UpdatePassword(ctx context.Context, id string, passwordHash string) error {
+	query := `
+		UPDATE users
+		SET password_hash = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.ExecContext(ctx, query, id, passwordHash)
 	if err != nil {
 		return err
 	}

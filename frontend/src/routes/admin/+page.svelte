@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { getAdminUsers, setUserRole } from '$lib/remote/users.remote';
+	import { getAdminUsers, setUserRole, resetUserPassword } from '$lib/remote/users.remote';
 	import { getCurrentUser } from '$lib/remote/auth.remote';
-	import type { UserRole } from '$lib/types';
+	import type { User, UserRole } from '$lib/types';
 
 	const me = getCurrentUser();
 
@@ -16,6 +16,44 @@
 
 	let busyId = $state<string | null>(null);
 	let error = $state<string | null>(null);
+
+	// resultado da reposição de password (mostrado em modal)
+	let resetResult = $state<{ user: User; password: string } | null>(null);
+	let copied = $state(false);
+
+	async function resetPassword(user: User) {
+		busyId = user.id;
+		error = null;
+		try {
+			const { password } = await resetUserPassword(user.id);
+			resetResult = { user, password };
+			copied = false;
+		} catch {
+			error = 'Não foi possível repor a palavra-passe.';
+		} finally {
+			busyId = null;
+		}
+	}
+
+	async function copyPassword() {
+		if (!resetResult) return;
+		try {
+			await navigator.clipboard.writeText(resetResult.password);
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+		} catch {
+			// área de transferência indisponível — a password está visível na mesma
+		}
+	}
+
+	function whatsappReset() {
+		if (!resetResult) return '';
+		const phone = resetResult.user.phone.replace(/\D/g, '');
+		const text = encodeURIComponent(
+			`Olá ${resetResult.user.name}! A tua nova palavra-passe no Despacha Aí é: ${resetResult.password}\n\nEntra e altera-a assim que puderes.`
+		);
+		return `https://wa.me/${phone}?text=${text}`;
+	}
 
 	async function changeRole(id: string, role: UserRole) {
 		busyId = id;
@@ -160,6 +198,14 @@
 						</span>
 					{/if}
 
+					<button
+						type="button"
+						onclick={() => resetPassword(user)}
+						disabled={busyId === user.id}
+						class="rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition hover:border-brand-400 hover:text-brand-700 disabled:opacity-50"
+						>Repor senha</button
+					>
+
 					<select
 						value={user.role}
 						disabled={busyId === user.id || user.id === myId}
@@ -211,3 +257,61 @@
 		</div>
 	{/snippet}
 </svelte:boundary>
+
+{#if resetResult}
+	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+		<button
+			type="button"
+			class="absolute inset-0 cursor-default bg-neutral-900/50 backdrop-blur-sm"
+			aria-label="Fechar"
+			onclick={() => (resetResult = null)}
+		></button>
+
+		<div
+			role="dialog"
+			aria-modal="true"
+			class="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl shadow-neutral-900/20"
+		>
+			<h2 class="text-lg font-bold text-neutral-900">Palavra-passe reposta</h2>
+			<p class="mt-1 text-sm text-neutral-600">
+				Nova palavra-passe temporária de <strong>{resetResult.user.name}</strong>. Envia-lha e pede
+				para a alterar depois de entrar.
+			</p>
+
+			<div
+				class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3"
+			>
+				<code class="text-lg font-bold tracking-wider text-brand-800">{resetResult.password}</code>
+				<button
+					type="button"
+					onclick={copyPassword}
+					class="shrink-0 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 transition hover:border-brand-400"
+				>
+					{copied ? 'Copiado!' : 'Copiar'}
+				</button>
+			</div>
+
+			<div class="mt-5 flex justify-end gap-3">
+				<button
+					type="button"
+					onclick={() => (resetResult = null)}
+					class="h-10 rounded-full border border-neutral-200 px-5 text-sm font-medium text-neutral-700 transition hover:border-neutral-300"
+					>Fechar</button
+				>
+				<a
+					href={whatsappReset()}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="flex h-10 items-center gap-2 rounded-full bg-whatsapp px-5 text-sm font-bold text-white transition hover:brightness-95"
+				>
+					<svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+						<path
+							d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347Z"
+						/>
+					</svg>
+					Enviar por WhatsApp
+				</a>
+			</div>
+		</div>
+	</div>
+{/if}

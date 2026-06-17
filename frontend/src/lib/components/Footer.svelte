@@ -12,6 +12,7 @@
 			<a href="/search" class="hover:text-brand-800">Explorar</a>
 			<a href="/categories" class="hover:text-brand-800">Categorias</a>
 			<a href="/anunciar" class="hover:text-brand-800">Anunciar</a>
+			<a href="/sobre" class="hover:text-brand-800">Sobre</a>
 		</nav>
 		<p>© {new Date().getFullYear()} Despacha Aí · Benguela, Angola</p>
 	</div>

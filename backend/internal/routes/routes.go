@@ -67,6 +67,7 @@ func registerUserRoutes(api *echo.Group, cfg *config.Config, userHandler *handle
 
 	private.GET("/me", userHandler.GetMe)
 	private.GET("/me/listings", listingHandler.GetMyListings)
+	private.PUT("/me/password", userHandler.ChangePassword)
 }
 
 func registerAdminRoutes(api *echo.Group, cfg *config.Config, listingHandler *handler.ListingHandler, userHandler *handler.UserHandler) {
@@ -78,6 +79,7 @@ func registerAdminRoutes(api *echo.Group, cfg *config.Config, listingHandler *ha
 	// user management
 	admin.GET("/users", userHandler.GetUsers)
 	admin.PUT("/users/:id/role", userHandler.UpdateUserRole)
+	admin.PUT("/users/:id/password", userHandler.ResetUserPassword)
 
 	// listing promotion (manual monetization: featured + bump)
 	admin.PUT("/listings/:id/feature", listingHandler.FeatureListing)

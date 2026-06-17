@@ -21,6 +21,13 @@ export const getAdminUsers = query(
 	}
 );
 
+export const resetUserPassword = command(v.string(), async (id) => {
+	return await apiFetch<{ password: string }>(
+		`/admin/users/${encodeURIComponent(id)}/password`,
+		{ method: 'PUT', auth: true }
+	);
+});
+
 export const setUserRole = command(
 	v.object({
 		id: v.string(),

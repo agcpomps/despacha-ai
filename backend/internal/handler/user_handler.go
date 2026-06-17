@@ -80,6 +80,57 @@ func (h *UserHandler) GetUsers(c *echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
+type changePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+func (h *UserHandler) ChangePassword(c *echo.Context) error {
+	userID, ok := c.Get("user_id").(string)
+	if !ok || userID == "" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	var req changePasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	err := h.userService.ChangePassword(c.Request().Context(), userID, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrIncorrectPassword):
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "palavra-passe actual incorrecta"})
+		case errors.Is(err, service.ErrWeakPassword):
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "a nova palavra-passe deve ter pelo menos 6 caracteres"})
+		case errors.Is(err, service.ErrUserNotFound):
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to change password"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *UserHandler) ResetUserPassword(c *echo.Context) error {
+	targetID := c.Param("id")
+
+	tempPassword, err := h.userService.ResetUserPassword(c.Request().Context(), targetID)
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "user not found",
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "failed to reset password",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"password": tempPassword})
+}
+
 func (h *UserHandler) UpdateUserRole(c *echo.Context) error {
 	actorID, ok := c.Get("user_id").(string)
 	if !ok || actorID == "" {

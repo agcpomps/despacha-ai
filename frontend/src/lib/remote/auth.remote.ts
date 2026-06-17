@@ -109,6 +109,40 @@ export const register = form(
 	}
 );
 
+export const changePassword = form(
+	v.object({
+		current_password: v.pipe(v.string(), v.minLength(1, 'Insira a palavra-passe actual.')),
+		new_password: v.pipe(
+			v.string(),
+			v.minLength(6, 'A nova palavra-passe deve ter pelo menos 6 caracteres.')
+		),
+		confirm_password: v.string()
+	}),
+	async (data, issue) => {
+		if (data.new_password !== data.confirm_password) {
+			invalid(issue.confirm_password('As palavras-passe não coincidem.'));
+		}
+
+		try {
+			await apiFetch('/me/password', {
+				method: 'PUT',
+				auth: true,
+				body: {
+					current_password: data.current_password,
+					new_password: data.new_password
+				}
+			});
+		} catch (err) {
+			if (err instanceof ApiError && err.status === 400) {
+				invalid(issue.current_password(err.message));
+			}
+			invalid(err instanceof ApiError ? err.message : 'Não foi possível alterar a palavra-passe.');
+		}
+
+		return { success: true };
+	}
+);
+
 export const logout = form(async () => {
 	const event = getRequestEvent();
 	event.cookies.delete('access_token', { path: '/' });
