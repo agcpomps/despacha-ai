@@ -102,12 +102,14 @@
 		<div>
 			<div class="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
 				<div class="relative aspect-4/3 bg-neutral-100">
-					<img
-						src={item.images?.[activeImage]?.image_url ?? '/product-placeholder.svg'}
-						alt={item.title}
-						class="h-full w-full object-contain"
-						onerror={handleImageError}
-					/>
+					{#key activeImage}
+						<img
+							src={item.images?.[activeImage]?.image_url ?? '/product-placeholder.svg'}
+							alt={item.title}
+							class="h-full w-full object-contain"
+							onerror={handleImageError}
+						/>
+					{/key}
 					{#if item.status === 'sold'}
 						<span
 							class="absolute top-4 left-4 rounded-full bg-neutral-900/85 px-3 py-1.5 text-sm font-semibold text-white"
