@@ -96,6 +96,7 @@ export type ListingFilters = {
 	city?: string;
 	min_price?: number;
 	max_price?: number;
+	condition?: ListingCondition;
 	sort?: ListingSort;
 	status?: Exclude<ListingStatus, 'deleted'>;
 	featured?: boolean;

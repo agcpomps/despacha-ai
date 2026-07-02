@@ -71,6 +71,7 @@ type ListingFilterRequest struct {
 	City       *string  `json:"city"`
 	MinPrice   *float64 `json:"min_price"`
 	MaxPrice   *float64 `json:"max_price"`
+	Condition  *string  `json:"condition"`
 	Search     *string  `json:"search"`
 	Sort       string   `json:"sort"`
 

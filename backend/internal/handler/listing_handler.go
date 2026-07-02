@@ -308,6 +308,15 @@ func buildListingFilters(c *echo.Context) (dto.ListingFilterRequest, error) {
 		filters.MaxPrice = &maxPrice
 	}
 
+	condition := c.QueryParam("condition")
+	switch condition {
+	case "":
+	case "new", "used":
+		filters.Condition = &condition
+	default:
+		return filters, errors.New("condition must be 'new' or 'used'")
+	}
+
 	featuredValue := c.QueryParam("featured")
 	if featuredValue != "" {
 		featured, err := strconv.ParseBool(featuredValue)

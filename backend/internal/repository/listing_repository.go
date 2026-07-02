@@ -294,7 +294,11 @@ func buildListingWhereClause(filters dto.ListingFilterRequest, startPosition int
 	}
 
 	if filters.CategoryID != nil && *filters.CategoryID != "" {
-		query += fmt.Sprintf(" AND category_id = $%d", argPosition)
+		// categorias-pai incluem os anúncios das subcategorias
+		query += fmt.Sprintf(
+			" AND (category_id = $%d OR category_id IN (SELECT id FROM categories WHERE parent_id = $%d))",
+			argPosition, argPosition,
+		)
 		args = append(args, *filters.CategoryID)
 		argPosition++
 	}
@@ -306,8 +310,9 @@ func buildListingWhereClause(filters dto.ListingFilterRequest, startPosition int
 	}
 
 	if filters.City != nil && *filters.City != "" {
-		query += fmt.Sprintf(" AND city ILIKE $%d", argPosition)
-		args = append(args, *filters.City)
+		// texto livre: correspondência parcial e sem acentos ("catumbela" → "Catumbéla")
+		query += fmt.Sprintf(" AND unaccent(city) ILIKE unaccent($%d)", argPosition)
+		args = append(args, "%"+strings.TrimSpace(*filters.City)+"%")
 		argPosition++
 	}
 
@@ -323,6 +328,12 @@ func buildListingWhereClause(filters dto.ListingFilterRequest, startPosition int
 		argPosition++
 	}
 
+	if filters.Condition != nil && *filters.Condition != "" {
+		query += fmt.Sprintf(" AND condition = $%d", argPosition)
+		args = append(args, *filters.Condition)
+		argPosition++
+	}
+
 	if filters.Featured != nil && *filters.Featured {
 		query += " AND is_featured = TRUE AND (featured_until IS NULL OR featured_until > NOW())"
 	}
@@ -330,8 +341,9 @@ func buildListingWhereClause(filters dto.ListingFilterRequest, startPosition int
 	if filters.Search != nil && strings.TrimSpace(*filters.Search) != "" {
 		searchTerm := "%" + strings.TrimSpace(*filters.Search) + "%"
 
+		// unaccent: "telemovel" também encontra "telemóvel"
 		query += fmt.Sprintf(
-			" AND (title ILIKE $%d OR description ILIKE $%d)",
+			" AND (unaccent(title) ILIKE unaccent($%d) OR unaccent(description) ILIKE unaccent($%d))",
 			argPosition,
 			argPosition,
 		)

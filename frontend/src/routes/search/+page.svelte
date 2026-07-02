@@ -6,7 +6,7 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { PROVINCES } from '$lib/utils';
-	import type { ListingFilters, ListingSort } from '$lib/types';
+	import type { ListingCondition, ListingFilters, ListingSort } from '$lib/types';
 
 	const categories = getCategories();
 
@@ -19,12 +19,15 @@
 	const filters: ListingFilters = $derived.by(() => {
 		const params = page.url.searchParams;
 		const sort = params.get('sort') as ListingSort | null;
+		const condition = params.get('condition') as ListingCondition | null;
 		return {
 			search: params.get('search') ?? undefined,
 			category_id: params.get('category_id') ?? undefined,
 			province: params.get('province') ?? undefined,
+			city: params.get('city')?.trim() || undefined,
 			min_price: parseNumber(params.get('min_price')),
 			max_price: parseNumber(params.get('max_price')),
+			condition: condition && ['new', 'used'].includes(condition) ? condition : undefined,
 			sort:
 				sort && ['newest', 'oldest', 'price_asc', 'price_desc'].includes(sort) ? sort : undefined,
 			page: parseNumber(params.get('page')) || 1,
@@ -94,6 +97,29 @@
 					{#each PROVINCES as province (province)}
 						<option value={province} selected={filters.province === province}>{province}</option>
 					{/each}
+				</select>
+			</label>
+
+			<label class="block">
+				<span class="text-xs font-semibold text-neutral-600">Cidade / Município</span>
+				<input
+					type="text"
+					name="city"
+					value={filters.city ?? ''}
+					placeholder="Ex.: Lobito"
+					class="mt-1 h-10 w-full rounded-lg border-neutral-200 text-sm focus:border-brand-500 focus:ring-brand-500"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="text-xs font-semibold text-neutral-600">Estado</span>
+				<select
+					name="condition"
+					class="mt-1 h-10 w-full rounded-lg border-neutral-200 text-sm focus:border-brand-500 focus:ring-brand-500"
+				>
+					<option value="" selected={!filters.condition}>Todos</option>
+					<option value="new" selected={filters.condition === 'new'}>Novo</option>
+					<option value="used" selected={filters.condition === 'used'}>Usado</option>
 				</select>
 			</label>
 
