@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/agcpomps/despacha-ai/backend/internal/domain"
 	"github.com/agcpomps/despacha-ai/backend/internal/dto"
@@ -22,6 +23,7 @@ var (
 
 type UserService interface {
 	GetProfile(ctx context.Context, userID string) (*dto.UserResponse, error)
+	GetPublicProfile(ctx context.Context, userID string) (*dto.PublicUserResponse, error)
 	ListUsers(ctx context.Context, search string, page, limit int) (*dto.PaginatedUsersResponse, error)
 	UpdateUserRole(ctx context.Context, actorID, targetID, role string) (*dto.UserResponse, error)
 	ResetUserPassword(ctx context.Context, targetID string) (string, error)
@@ -50,6 +52,30 @@ func (s *userService) GetProfile(ctx context.Context, userID string) (*dto.UserR
 
 	response := toUserResponse(user)
 	return &response, nil
+}
+
+func (s *userService) GetPublicProfile(ctx context.Context, userID string) (*dto.PublicUserResponse, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	// contas suspensas/apagadas não têm loja pública
+	if user.Status != domain.UserStatusActive {
+		return nil, ErrUserNotFound
+	}
+
+	return &dto.PublicUserResponse{
+		ID:         user.ID,
+		Name:       user.Name,
+		AvatarURL:  user.AvatarURL,
+		IsVerified: user.IsVerified,
+		CreatedAt:  user.CreatedAt.Format(time.RFC3339),
+	}, nil
 }
 
 func (s *userService) ListUsers(ctx context.Context, search string, page, limit int) (*dto.PaginatedUsersResponse, error) {

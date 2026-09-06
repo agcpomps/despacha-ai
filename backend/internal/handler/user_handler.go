@@ -7,6 +7,7 @@ import (
 
 	"github.com/agcpomps/despacha-ai/backend/internal/dto"
 	"github.com/agcpomps/despacha-ai/backend/internal/service"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
@@ -30,6 +31,31 @@ func (h *UserHandler) GetMe(c *echo.Context) error {
 	}
 
 	user, err := h.userService.GetProfile(c.Request().Context(), userID)
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "user not found",
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "failed to fetch profile",
+		})
+	}
+
+	return c.JSON(http.StatusOK, user)
+}
+
+// GetPublicProfile devolve o perfil público de um vendedor (página da loja).
+func (h *UserHandler) GetPublicProfile(c *echo.Context) error {
+	id := c.Param("id")
+	if _, err := uuid.Parse(id); err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "user not found",
+		})
+	}
+
+	user, err := h.userService.GetPublicProfile(c.Request().Context(), id)
 	if err != nil {
 		if errors.Is(err, service.ErrUserNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]string{

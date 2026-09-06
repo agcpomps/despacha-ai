@@ -89,6 +89,14 @@ export type PaginatedListings = {
 	total_pages: number;
 };
 
+export type PublicSeller = {
+	id: string;
+	name: string;
+	avatar_url?: string;
+	is_verified: boolean;
+	created_at: string;
+};
+
 export type ListingFilters = {
 	search?: string;
 	category_id?: string;

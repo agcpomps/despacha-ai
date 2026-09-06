@@ -61,6 +61,9 @@ func registerAuthRoutes(api *echo.Group, authHandler *handler.AuthHandler) {
 }
 
 func registerUserRoutes(api *echo.Group, cfg *config.Config, userHandler *handler.UserHandler, listingHandler *handler.ListingHandler) {
+	// perfil público do vendedor (página da loja) — sem auth
+	api.GET("/users/:id/public", userHandler.GetPublicProfile)
+
 	private := api.Group("")
 
 	private.Use(appmiddleware.AuthMiddleware(cfg.JWTSecret))

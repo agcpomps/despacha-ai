@@ -203,6 +203,18 @@ func (h *ListingHandler) GetListings(c *echo.Context) error {
 		})
 	}
 
+	// loja pública: filtrar por vendedor mostra apenas anúncios activos
+	if userID := c.QueryParam("user_id"); userID != "" {
+		if _, err := uuid.Parse(userID); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "user_id must be a valid id",
+			})
+		}
+		active := "active"
+		filters.UserID = &userID
+		filters.Status = &active
+	}
+
 	listings, err := h.listingService.GetListings(c.Request().Context(), filters)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{

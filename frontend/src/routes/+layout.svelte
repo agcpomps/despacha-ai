@@ -10,7 +10,6 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>Despacha Aí — Compra e venda em Angola</title>
 </svelte:head>
 
 <div class="flex min-h-screen flex-col">

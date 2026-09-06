@@ -2,11 +2,20 @@
 	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
 	import { getMyListings, setListingStatus, deleteListing } from '$lib/remote/listings.remote';
+	import { getCurrentUser } from '$lib/remote/auth.remote';
 	import { formatPrice, timeAgo, STATUS_LABELS } from '$lib/utils';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { Listing } from '$lib/types';
 
 	const adminWhatsApp = (env.PUBLIC_ADMIN_WHATSAPP ?? '').replace(/\D/g, '');
+	const me = getCurrentUser();
+
+	function shopShareLink(userId: string) {
+		const text = encodeURIComponent(
+			`Vê os meus anúncios no Despacha Aí: ${page.url.origin}/loja/${userId}`
+		);
+		return `https://wa.me/?text=${text}`;
+	}
 
 	function promoteLink(listing: Listing) {
 		const text = encodeURIComponent(
@@ -88,11 +97,32 @@
 		<h1 class="text-2xl font-bold text-neutral-900">Os meus anúncios</h1>
 		<p class="mt-1 text-sm text-neutral-500">Gere, edita e acompanha as tuas publicações.</p>
 	</div>
-	<a
-		href="/anunciar"
-		class="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
-		>Novo anúncio</a
-	>
+	<div class="flex flex-wrap gap-2">
+		<svelte:boundary>
+			{#if await me}
+				{@const user = (await me)!}
+				<a
+					href={`/loja/${user.id}`}
+					class="rounded-full border border-neutral-200 px-5 py-2.5 text-sm font-medium text-neutral-600 transition hover:border-brand-300 hover:text-brand-700"
+					>A minha loja</a
+				>
+				<a
+					href={shopShareLink(user.id)}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="rounded-full bg-whatsapp px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-95"
+					>Partilhar loja</a
+				>
+			{/if}
+			{#snippet pending()}{/snippet}
+			{#snippet failed()}{/snippet}
+		</svelte:boundary>
+		<a
+			href="/anunciar"
+			class="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+			>Novo anúncio</a
+		>
+	</div>
 </div>
 
 <nav class="mt-6 flex gap-2 overflow-x-auto" aria-label="Filtrar por estado">

@@ -30,7 +30,7 @@
 	<section class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6">
 		<h2 class="text-base font-bold text-neutral-900">Alterar palavra-passe</h2>
 		<p class="mt-1 text-sm text-neutral-500">
-			Recomendamos alterar a palavra-passe se recebeste uma temporária do suporte.
+			Mantém o acesso à tua conta seguro escolhendo uma palavra-passe que só tu conheces.
 		</p>
 
 		{#if changePassword.result?.success}
