@@ -48,12 +48,6 @@
 				{/if}
 			{/each}
 
-			<div class="text-right">
-				<a href="/recuperar" class="text-sm font-medium text-brand-700 hover:text-brand-800"
-					>Esqueci-me da palavra-passe</a
-				>
-			</div>
-
 			<button
 				type="submit"
 				disabled={login.pending > 0}
